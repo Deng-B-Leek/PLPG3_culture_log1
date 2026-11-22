@@ -1,4 +1,4 @@
-"""The database schema and its creation."""
+"""The database tables."""
 import sqlite3
 
 from database.connection import DatabaseError, connect
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS events (
 
 
 def init_db(conn=None):
-    """Create the tables if they do not exist yet. Safe to call every start."""
+    """Create the tables if they are not there yet."""
     own = conn is None
     db = connect() if own else conn
     try:

@@ -1,8 +1,8 @@
-"""All SQL of the application lives here.
+"""All the SQL of the app is in this file.
 
-Every function takes an open connection and runs parameterised queries. Column
-names that end up in SQL text come from the fixed whitelists below, never from
-user input. Committing is done by database.connection.session().
+Every query uses ? placeholders. The column names come from the
+lists below, never from what the user types. The commit is done by
+session() in database/connection.py.
 """
 
 KINDS = ("tradition", "event")
@@ -28,14 +28,12 @@ _EVENT_SELECT = (
 
 
 def _escape_like(term):
-    """Escape the LIKE wildcards so a search for '50%' means a literal 50%."""
+    """Make % and _ count as normal characters in a search."""
     return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
-# ---------- records (traditions and events) ----------
-
 def insert_record(db, kind, values, created_by=""):
-    """Insert a record and return its new id."""
+    """Add a record and return its id."""
     columns = EDITABLE_FIELDS[kind] + ("created_by",)
     params = [values.get(c) for c in EDITABLE_FIELDS[kind]] + [created_by]
     sql = "INSERT INTO {} ({}) VALUES ({})".format(
@@ -44,7 +42,7 @@ def insert_record(db, kind, values, created_by=""):
 
 
 def get_record(db, kind, record_id):
-    """Return one record as a Row, or None if it does not exist."""
+    """Return one record, or None if it is not there."""
     if kind == "event":
         sql = _EVENT_SELECT + " WHERE e.id = ?"
     else:
@@ -53,7 +51,7 @@ def get_record(db, kind, record_id):
 
 
 def list_records(db, kind):
-    """Return all records of a kind (traditions by name, events by date)."""
+    """Return all records (traditions by name, events by date)."""
     if kind == "event":
         sql = (_EVENT_SELECT +
                " ORDER BY e.event_date, e.name COLLATE NOCASE")
@@ -63,7 +61,7 @@ def list_records(db, kind):
 
 
 def search_records(db, kind, term):
-    """Return the records whose text fields contain term (any case)."""
+    """Return the records that have the text in any of their fields."""
     pattern = "%" + _escape_like(term) + "%"
     columns = _SEARCH_COLUMNS[kind]
     where = " OR ".join("{} LIKE ? ESCAPE '\\'".format(c) for c in columns)
@@ -77,7 +75,7 @@ def search_records(db, kind, term):
 
 
 def update_record(db, kind, record_id, values):
-    """Update the given fields. Return True if a record was changed."""
+    """Update the fields in values. Return True if something changed."""
     fields = [f for f in EDITABLE_FIELDS[kind] if f in values]
     if not fields:
         return False
@@ -88,13 +86,13 @@ def update_record(db, kind, record_id, values):
 
 
 def delete_record(db, kind, record_id):
-    """Delete a record. Return True if a record was removed."""
+    """Delete a record. Return True if it existed."""
     sql = "DELETE FROM {} WHERE id = ?".format(_TABLE[kind])
     return db.execute(sql, (record_id,)).rowcount > 0
 
 
 def count_records(db, kind, upcoming_from=None):
-    """Count records. For events, upcoming_from limits to date >= value."""
+    """Count records. upcoming_from only counts events from that date on."""
     sql = "SELECT COUNT(*) FROM {}".format(_TABLE[kind])
     params = ()
     if kind == "event" and upcoming_from is not None:
@@ -104,7 +102,7 @@ def count_records(db, kind, upcoming_from=None):
 
 
 def count_by(db, kind, column):
-    """Return [(value, count), ...] grouped by a whitelisted column."""
+    """Count records grouped by a column, like [(value, count), ...]."""
     if column not in _GROUPABLE[kind]:
         raise ValueError(
             "Cannot group {} records by {}".format(kind, column))
@@ -114,17 +112,15 @@ def count_by(db, kind, column):
     return [(row[0], row[1]) for row in db.execute(sql)]
 
 
-# ---------- users ----------
-
 def add_user(db, username, password_hash, salt, role):
-    """Insert a user and return the new id."""
+    """Add a user and return the id."""
     sql = ("INSERT INTO users (username, password_hash, salt, role) "
            "VALUES (?, ?, ?, ?)")
     return db.execute(sql, (username, password_hash, salt, role)).lastrowid
 
 
 def get_user(db, username):
-    """Return a user Row (the name match ignores case), or None."""
+    """Return the user (the name is not case sensitive), or None."""
     return db.execute(
         "SELECT * FROM users WHERE username = ?", (username,)).fetchone()
 

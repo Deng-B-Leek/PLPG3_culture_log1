@@ -1,8 +1,8 @@
-"""Errors raised by the service layer."""
+"""The errors the services can raise."""
 
 
 class PermissionDenied(Exception):
-    """The user's role does not allow this action."""
+    """The role is not allowed to do this."""
 
 
 class NotFoundError(LookupError):
@@ -10,4 +10,4 @@ class NotFoundError(LookupError):
 
 
 class AuthError(Exception):
-    """Login failed."""
+    """The login failed."""

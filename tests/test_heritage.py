@@ -1,11 +1,11 @@
 """Tests for the validators, the services and the database layer.
 
-Run from the project root:  python -m unittest discover -v
+Run them from the project root with:  python -m unittest discover -v
 
-Every test that needs a database builds its own in-memory one, so the tests
-never touch heritage.db and never affect each other.
+Each test that needs a database makes its own in-memory one, so the
+tests never touch heritage.db and never affect each other.
 
-Owner: Esther (testing)
+Owner: Esther
 """
 import unittest
 from datetime import date
@@ -25,9 +25,7 @@ TRADITION = {"name": "Intore dance", "region": "Rwanda",
 
 
 class ValidatorTests(unittest.TestCase):
-    """clean_text, clean_date, clean_record_id and clean_choice."""
-
-    # ----- clean_text -----
+    """Tests for clean_text, clean_date, clean_record_id and clean_choice."""
 
     def test_clean_text_trims_spaces(self):
         self.assertEqual(clean_text("  Kente  ", "Name", 50), "Kente")
@@ -51,11 +49,9 @@ class ValidatorTests(unittest.TestCase):
             clean_text("", "Region", 50)
         self.assertIn("Region", str(caught.exception))
 
-    # ----- clean_date -----
-
     def test_clean_date_accepts_real_dates(self):
         self.assertEqual(clean_date("2026-08-07"), "2026-08-07")
-        self.assertEqual(clean_date(" 2028-02-29 "), "2028-02-29")  # leap
+        self.assertEqual(clean_date(" 2028-02-29 "), "2028-02-29")  # leap year
 
     def test_clean_date_zero_pads(self):
         self.assertEqual(clean_date("2026-8-7"), "2026-08-07")
@@ -73,8 +69,6 @@ class ValidatorTests(unittest.TestCase):
             with self.assertRaises(ValidationError, msg=repr(bad)):
                 clean_date(bad)
 
-    # ----- clean_record_id -----
-
     def test_clean_record_id_accepts_whole_numbers(self):
         self.assertEqual(clean_record_id("7"), 7)
         self.assertEqual(clean_record_id(" 12 "), 12)
@@ -86,8 +80,6 @@ class ValidatorTests(unittest.TestCase):
             with self.assertRaises(ValidationError, msg=repr(bad)):
                 clean_record_id(bad)
 
-    # ----- clean_choice -----
-
     def test_clean_choice(self):
         choices = ("dance", "music")
         self.assertEqual(clean_choice(" DANCE ", choices), "dance")
@@ -97,7 +89,7 @@ class ValidatorTests(unittest.TestCase):
 
 
 class ServiceTests(unittest.TestCase):
-    """TraditionService, with one organizer and one volunteer."""
+    """Tests for TraditionService with an organizer and a volunteer."""
 
     def setUp(self):
         self.conn = connect(":memory:")
@@ -111,8 +103,6 @@ class ServiceTests(unittest.TestCase):
     def make(self, service=None, **overrides):
         service = service or self.organizer
         return service.create(dict(TRADITION, **overrides))
-
-    # ----- create -----
 
     def test_organizer_creates_and_reads_a_tradition(self):
         record_id = self.make()
@@ -153,8 +143,6 @@ class ServiceTests(unittest.TestCase):
             {"name": "A", "region": "B", "category": "other"})
         self.assertEqual(self.organizer.get(record_id)["description"], "")
 
-    # ----- list and search -----
-
     def names(self, term):
         return [r["name"] for r in self.organizer.search(term)]
 
@@ -190,8 +178,6 @@ class ServiceTests(unittest.TestCase):
             with self.assertRaises(ValidationError, msg=repr(bad)):
                 self.organizer.search(bad)
 
-    # ----- update -----
-
     def test_update_changes_only_the_given_fields(self):
         record_id = self.make()
         self.organizer.update(record_id, {"region": "East Africa"})
@@ -215,8 +201,6 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(row["category"], "dance")
         self.assertEqual(row["name"], "Intore dance")
 
-    # ----- delete -----
-
     def test_organizer_deletes_a_tradition(self):
         record_id = self.make()
         self.organizer.delete(record_id)
@@ -230,8 +214,6 @@ class ServiceTests(unittest.TestCase):
         self.organizer.delete(gone)
         self.assertEqual([r["id"] for r in self.organizer.list_all()], [keep])
 
-    # ----- missing records -----
-
     def test_missing_records(self):
         with self.assertRaises(NotFoundError):
             self.organizer.get(99)
@@ -244,8 +226,6 @@ class ServiceTests(unittest.TestCase):
         for bad in ("abc", "", "0", "-3", None):
             with self.assertRaises(ValidationError, msg=repr(bad)):
                 self.organizer.get(bad)
-
-    # ----- volunteer permission blocks -----
 
     def test_volunteer_cannot_update(self):
         record_id = self.make()
@@ -262,7 +242,7 @@ class ServiceTests(unittest.TestCase):
                          "Intore dance")
 
     def test_permission_is_checked_before_the_record_is_looked_up(self):
-        # A volunteer gets "not allowed", not "not found", for an unknown ID.
+        # a volunteer should get "not allowed", not "not found"
         with self.assertRaises(PermissionDenied):
             self.volunteer.delete(99)
         with self.assertRaises(PermissionDenied):
@@ -312,7 +292,7 @@ class ServiceTests(unittest.TestCase):
 
 
 class EventServiceTests(unittest.TestCase):
-    """EventService, with one organizer and one volunteer."""
+    """Tests for EventService with an organizer and a volunteer."""
 
     def setUp(self):
         self.conn = connect(":memory:")

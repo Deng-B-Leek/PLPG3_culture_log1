@@ -1,4 +1,4 @@
-"""Rules for events."""
+"""The rules for events."""
 from datetime import date
 
 from database import repository
@@ -10,7 +10,7 @@ from utils.validators import (
 
 
 class EventService(RecordService):
-    """Create, find, change and remove events."""
+    """Add, find, change and remove events."""
 
     KIND = "event"
     FIELDS = (
@@ -35,7 +35,7 @@ class EventService(RecordService):
         raise ValueError("Unknown field: {!r}".format(field))
 
     def _clean_tradition_id(self, value):
-        """None when left empty; otherwise the ID of an existing tradition."""
+        """Return None if empty, else the ID of an existing tradition."""
         if value is None or str(value).strip() == "":
             return None
         tradition_id = clean_record_id(value, "The tradition ID")
@@ -47,7 +47,7 @@ class EventService(RecordService):
         return tradition_id
 
     def summary(self, today=None):
-        """Totals for the report: all events, and the upcoming ones."""
+        """Numbers for the report: all events and the upcoming ones."""
         today = (today or date.today()).isoformat()
         with session(self._conn) as db:
             return {

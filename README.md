@@ -1,117 +1,110 @@
 # Community Culture and Heritage Management System
 
-A command-line application for recording and exploring the traditions and
-events of a community. It is a menu-driven Python program that keeps its data
-in a SQLite database, so nothing is lost when you close it.
+This is our command line app for keeping a record of the traditions and events
+in a community. You use it from a menu in the terminal, and everything is saved
+in a SQLite database so it is still there the next time you open it.
 
-**Peer Learning Project 2, Group 3 (African Leadership University, BSE Year 1, Trimester 2)**
+Peer Learning Project 2, Group 3 (African Leadership University, BSE Year 1,
+Trimester 2)
 
 ## Team
 
 | Member | Role | Files |
 |--------|------|-------|
 | Deng | Project coordinator: startup, putting the parts together, run instructions | `main.py`, `README.md` |
-| Davina | User journey: the menu flow, the decisions and the flowchart | `ui/menus.py`, architecture section of this README |
-| Esther | Testing: checks that the code and the permissions work | `tests/` |
-| (add name) | Service layer: rules, validation, permissions, accounts | `services/`, `utils/` |
-| (add name) | Database layer: schema and SQL | `database/` |
+| Davina | User journey: the menu flow, the decisions and the flowchart | `ui/menus.py`, architecture part of this README |
+| Esther | Testing: checking that the code and the permissions work | `tests/` |
+| (add name) | Service layer: rules, checks, permissions, accounts | `services/`, `utils/` |
+| (add name) | Database layer: tables and SQL | `database/` |
 
-## Run it
+## How to run it
 
-You need Python 3.8 or newer. Nothing else has to be installed.
+You need Python 3.8 or newer. There is nothing to install.
 
-```bash
+```
 python main.py
 ```
 
-On the very first run the app asks you to create the **organizer** account. After
-that, people can log in, or create a **volunteer** account from the welcome
-screen. The data is saved in `heritage.db` in the folder you run it from. To use
-another file, set the `HERITAGE_DB` environment variable:
+The first time, the app asks you to create the organizer account. After that
+people can log in, or sign up as a volunteer from the welcome screen. The data
+goes in `heritage.db` in the folder you start the program from. To use a
+different file, set `HERITAGE_DB`:
 
-```bash
+```
 HERITAGE_DB=other.db python main.py
 ```
 
-### Run the tests
+## How to run the tests
 
-```bash
+From the project folder:
+
+```
 python -m unittest discover -v
 ```
 
-Run it from the project root. Every test builds its own in-memory database, so
-the tests never touch `heritage.db`. A failing test names the exact file and
-line.
+Every test makes its own in-memory database, so the tests never touch
+`heritage.db`. If a test fails it shows the file and line.
 
-## What the program does
+## What it does
 
-- Record **traditions** (name, region, category, description) and **events**
-  (name, date, location, an optional related tradition, description).
-- **View**, **search** (any text, any case), **add**, **update** and **delete**
-  records.
-- A **summary report**: totals, upcoming events, and traditions by category and
-  by region.
-- **Accounts with roles**, so that only the right people can change or remove
-  records.
+- Keep records of traditions (name, region, category, description) and events
+  (name, date, location, an optional tradition it belongs to, description).
+- View, search, add, update and delete records.
+- A summary report with the totals, the upcoming events, and the traditions by
+  category and by region.
+- Log in with a role, so not everybody can change or delete things.
 
 ### Roles
 
 | Action | Volunteer | Organizer |
 |--------|:---------:|:---------:|
-| View, search, summary report | yes | yes |
+| View, search, report | yes | yes |
 | Add a record | yes | yes |
 | Update a record | no | yes |
 | Delete a record | no | yes |
 
-The first account ever created is the organizer. Everyone who signs up after
-that is a volunteer. If a role is not allowed to do something, the program says
-so straight away and returns to the menu, **before asking any questions**.
+The first account created is the organizer, and everyone who signs up after that
+is a volunteer. If your role is not allowed to do something, the app tells you
+and goes back to the menu without asking you anything first.
 
-## Architecture
+## How the code is organised
 
-The program has three layers. Each layer only talks to the one below it, and
-`main.py` joins them together.
+There are three layers. Each one only talks to the layer under it, and `main.py`
+connects them.
 
 ```
-  main.py                 starts the program and joins the layers
-     |
-     v
-  ui/menus.py             MENU layer      what the user sees and types
-     |                    (Menu: the menu loop, prompts, tables, permission checks)
-     v
-  services/               SERVICE layer   the rules of the app
-     |                    (TraditionService, EventService, AuthService;
-     |                     roles in permissions.py; checks in utils/validators.py)
-     v
-  database/               DATABASE layer  the only code that touches SQLite
-                          (connection.py, schema.py, repository.py)
+main.py              starts the program
+   |
+ui/menus.py          menu layer: what the user sees and types
+   |
+services/            service layer: the rules (checks, roles, accounts)
+   |
+database/            database layer: the tables and all the SQL
 ```
 
-| Layer | Where | Job |
-|-------|-------|-----|
-| Menu | `ui/menus.py` | The user journey: show the menu, read the choice, call the right service, show the result. No SQL and no business rules. |
-| Service | `services/`, `utils/validators.py` | Every rule lives here once: checking each answer, who may do what, passwords, report numbers. |
-| Database | `database/` | The tables and all the SQL. It makes no decisions. |
+- **Menu** (`ui/menus.py`): shows the menu, reads the choice, calls a service and
+  prints the result. It has no SQL and no rules of its own.
+- **Services** (`services/` and `utils/validators.py`): check every answer, decide
+  who is allowed to do what, handle passwords and work out the report numbers.
+- **Database** (`database/`): creates the tables and runs the queries. It does
+  not make any decisions.
 
-Why three layers? A change stays in one place: a new rule goes in the service, a
-new screen goes in the menu. Each layer can also be tested on its own. The
-services check permissions themselves too, so the rules hold even if a menu
-check were ever missed.
+This way a new rule only changes the service, and a new screen only changes the
+menu. The services also check the role themselves, so a mistake in the menu
+cannot let someone through.
 
 ### The user journey
 
-`Menu.run()` in `ui/menus.py` is the central decision point. It shows the main
-menu, reads a choice, runs the matching action, and comes back to the menu until
-the user chooses to exit.
+`Menu.run()` in `ui/menus.py` is the main loop. It shows the menu, reads a
+choice, runs that action and comes back to the menu, until the user picks exit.
 
-- `run()` is the menu loop. Each choice leads to exactly one action.
-- `_pick_record_type()` is the branch where the user chooses a **tradition** or
-  an **event** (or goes back).
-- `_add_record()`, `_update_record()` and `_delete_record()` each begin with a
-  **permission check** (`_allowed()`). If the role is not allowed, the user is
-  sent back to the menu before being asked for any input.
-- Ctrl+C and Ctrl+D (end of input) leave the program politely, and database
-  problems show a message instead of crashing the menu.
+- `run()` is the loop. Each choice leads to one action.
+- `_pick_record_type()` is where the user picks a tradition or an event, or goes
+  back.
+- Add, update and delete each start with a role check (`_allowed()`). If the role
+  is not allowed, the user is sent back before being asked for any input.
+- Ctrl+C and Ctrl+D close the program politely, and a database error shows a
+  message instead of crashing the menu.
 
 ```mermaid
 flowchart TD
@@ -134,54 +127,50 @@ flowchart TD
     G -- "6 Summary report" --> S["Show the report"]
     S --> M
     G -- "3 Add, 4 Update, 5 Delete" --> K{"Does the role allow it?"}
-    K -- No --> N["Permission denied: no questions asked"]
+    K -- No --> N["Permission denied, nothing is asked"]
     N --> M
     K -- Yes --> P2{"Tradition or event?"}
     P2 -- Back --> M
-    P2 -- "Tradition / Event" --> Q["Ask for the details, check each answer, confirm, save"]
+    P2 -- "Tradition / Event" --> Q["Ask for the details, check them, confirm, save"]
     Q --> M
     G -- "7 Log out" --> E
 ```
 
-> The flowchart above is a text diagram that GitHub draws by itself. If the team
-> has a designed flowchart image, add it to a `docs/` folder and link it here.
+The diagram above is written as text and GitHub draws it for us. If we make a
+nicer flowchart image, it can go in a `docs/` folder and be linked here.
 
 ## Project structure
 
 ```
-main.py                    entry point (Deng)
+main.py                    entry point
 ui/
-    menus.py               Menu: the user journey (Davina)
+    menus.py               the menu and the user journey
 services/
-    base.py                shared create, read, update, delete logic
+    base.py                create, read, update, delete shared by both services
     tradition_service.py   rules for traditions
     event_service.py       rules for events
-    auth_service.py        sign-up and login
-    permissions.py         what each role may do
+    auth_service.py        sign up and login
+    permissions.py         what each role can do
     errors.py              PermissionDenied, NotFoundError, AuthError
 utils/
     validators.py          clean_text, clean_date, clean_record_id, clean_choice
 database/
-    connection.py          connecting, sessions, DatabaseError
+    connection.py          connecting and sessions
     schema.py              the tables
     repository.py          all the SQL
 tests/
-    test_heritage.py       validators, services and database (Esther)
+    test_heritage.py       validators, services and database
     test_auth.py           accounts and passwords
-    test_menu.py           the whole user journey with scripted keystrokes
+    test_menu.py           the whole menu with fake keystrokes
 ```
 
-## Safety notes
+## A few notes
 
-- **SQL injection:** every query uses placeholders. The few column names that
-  appear in SQL text come from fixed lists in `database/repository.py`. A search
-  for `%` or `_` is treated as plain characters.
-- **Passwords:** never stored as typed. Each one is salted and hashed with
-  PBKDF2-SHA256 and compared in constant time. A wrong username and a wrong
-  password give the same message.
-- **No built-in passwords:** the organizer account is created by whoever runs
-  the app first, so no default login is shipped in the code.
-- **Input checks:** required fields, maximum lengths, a fixed list of
-  categories, real calendar dates (`YYYY-MM-DD`), and a related tradition that
-  must exist. A bad answer is explained and asked again.
-- **Deleting a tradition** keeps its events; they only lose the link.
+- All queries use `?` placeholders, so what the user types never goes into the
+  SQL text.
+- Passwords are salted and hashed (PBKDF2), not saved as typed.
+- There is no default login. The organizer account is made by whoever runs the
+  app first.
+- Bad input (empty names, wrong dates, unknown categories, a tradition ID that
+  does not exist) is explained and asked again.
+- If a tradition is deleted, its events stay and just lose the link.

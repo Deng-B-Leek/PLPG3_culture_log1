@@ -1,6 +1,6 @@
-"""Roles and what each role may do."""
+"""The roles and what each one is allowed to do."""
 
-# Organizers run the heritage log. Volunteers help to fill it in.
+# organizers can do everything, volunteers can only view, search and add
 ROLE_PERMISSIONS = {
     "organizer": {"view", "search", "report", "add", "update", "delete"},
     "volunteer": {"view", "search", "report", "add"},
@@ -19,5 +19,5 @@ ACTION_LABELS = {
 
 
 def can(role, action):
-    """Return True if the role is allowed to perform the action."""
+    """Return True if the role is allowed to do the action."""
     return action in ROLE_PERMISSIONS.get(role, ())

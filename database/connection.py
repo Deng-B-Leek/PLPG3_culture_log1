@@ -1,24 +1,20 @@
-"""Database connection helpers (SQLite).
-
-Services never open connections by hand: they use session(), which commits on
-success, rolls back on failure and turns SQLite errors into DatabaseError.
-"""
+"""Connecting to the SQLite database."""
 import os
 import sqlite3
 from contextlib import contextmanager
 
 
 class DatabaseError(Exception):
-    """Something went wrong while talking to the database."""
+    """Raised when something goes wrong with the database."""
 
 
 def get_db_path():
-    """The database file: HERITAGE_DB if set, otherwise heritage.db."""
+    """Return the database file name (heritage.db by default)."""
     return os.environ.get("HERITAGE_DB", "heritage.db")
 
 
 def connect(path=None):
-    """Open a connection. Use ':memory:' for a throw-away database (tests)."""
+    """Open the database. Use ':memory:' for tests."""
     path = path or get_db_path()
     try:
         conn = sqlite3.connect(path)
@@ -32,11 +28,10 @@ def connect(path=None):
 
 @contextmanager
 def session(conn=None):
-    """Yield a connection for one unit of work.
+    """Give a connection for one piece of work.
 
-    With no conn, a fresh connection is opened and closed afterwards. With a
-    conn (for example an in-memory test database) that connection is reused and
-    left open.
+    Commits if it works and rolls back if it fails. If no conn is
+    given it opens its own and closes it at the end.
     """
     own = conn is None
     db = connect() if own else conn

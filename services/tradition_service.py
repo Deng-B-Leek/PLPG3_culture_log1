@@ -1,4 +1,4 @@
-"""Rules for traditions."""
+"""The rules for traditions."""
 from database import repository
 from database.connection import session
 from services.base import RecordService
@@ -9,7 +9,7 @@ CATEGORIES = ("dance", "music", "cuisine", "ceremony", "craft",
 
 
 class TraditionService(RecordService):
-    """Create, find, change and remove traditions."""
+    """Add, find, change and remove traditions."""
 
     KIND = "tradition"
     FIELDS = (
@@ -31,7 +31,7 @@ class TraditionService(RecordService):
         raise ValueError("Unknown field: {!r}".format(field))
 
     def summary(self):
-        """Totals for the report: how many, and by category and region."""
+        """Numbers for the report: total, and counts by category and region."""
         with session(self._conn) as db:
             return {
                 "total": repository.count_records(db, self.KIND),

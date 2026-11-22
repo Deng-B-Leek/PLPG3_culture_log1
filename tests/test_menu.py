@@ -1,4 +1,4 @@
-"""Tests for the menu: the whole user journey, with scripted keystrokes."""
+"""Tests for the menu, using fake keystrokes."""
 import unittest
 from unittest import mock
 
@@ -14,7 +14,7 @@ TRADITION = {"name": "Intore dance", "region": "Rwanda",
 
 
 class Session:
-    """Stands in for the keyboard and the screen."""
+    """Pretends to be the keyboard and the screen."""
 
     def __init__(self, inputs, ending=EOFError):
         self.inputs = list(inputs)
@@ -25,7 +25,7 @@ class Session:
     def input(self, prompt=""):
         self.prompts.append(prompt)
         if not self.inputs:
-            raise self.ending       # Ctrl+D or Ctrl+C at the keyboard
+            raise self.ending       # like pressing Ctrl+D or Ctrl+C
         return self.inputs.pop(0)
 
     def print(self, *args):
@@ -49,7 +49,7 @@ class MenuTestCase(unittest.TestCase):
         self.auth.register("amina", "secret123")
         self.traditions = TraditionService(self.conn)
         self.events = EventService(self.conn)
-        # one tradition to work with, added by the organizer
+        # one tradition to work with
         organizer = TraditionService(self.conn, role="organizer")
         self.tid = organizer.create(TRADITION)
 
@@ -160,7 +160,7 @@ class TestFirstRunAndAccounts(unittest.TestCase):
 
 
 class TestPermissionChecks(MenuTestCase):
-    """A role that is not allowed is sent back BEFORE any question."""
+    """A role that is not allowed is sent back before any question."""
 
     def test_volunteer_is_denied_update_and_delete(self):
         session, _ = self.run_menu(self.VOLUNTEER + ["4", "5", "0"])

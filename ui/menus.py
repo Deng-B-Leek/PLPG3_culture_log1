@@ -1,10 +1,10 @@
-"""Menu layer: the command-line user journey.
+"""The menu part of the app: what the user sees and types.
 
-Menu.run() is the central decision point. From the main menu every choice leads
-to one action, and the action always returns to the menu until the user chooses
-to exit. The menu only talks to the services, never to SQL.
+Menu.run() is the main loop. It shows the menu, does what the user
+picks, then shows the menu again until they exit. The menu only talks
+to the services, never to the database.
 
-Owner: Davina (user journey)
+Owner: Davina
 """
 from database.connection import DatabaseError
 from services.errors import (
@@ -32,7 +32,7 @@ MAIN_MENU = """
 
 
 class Menu:
-    """A menu-driven command-line interface for the heritage log."""
+    """The command line menu."""
 
     def __init__(self, traditions, events, auth, input_fn=None,
                  output_fn=print):
@@ -41,14 +41,12 @@ class Menu:
         self.auth = auth
         self._input = input_fn or (lambda prompt="": input(prompt))
         self._print = output_fn
-        self.user = None  # {"username": ..., "role": ...} once logged in
+        self.user = None  # set after login: username and role
 
-    # ------------------------------------------------------------------
-    # The main loop: the central decision point of the user journey
-    # ------------------------------------------------------------------
+    # the main loop
 
     def run(self):
-        """Show the menu again and again until the user chooses to exit."""
+        """Show the menu again and again until the user exits."""
         self._print(BANNER)
         try:
             if self._welcome():
@@ -85,12 +83,10 @@ class Menu:
                 self._print("\n  Database problem: {}".format(error))
                 self._print("  Nothing was lost. Returning to the menu.")
 
-    # ------------------------------------------------------------------
-    # Branch: choose a tradition or an event
-    # ------------------------------------------------------------------
+    # choose a tradition or an event
 
     def _pick_record_type(self):
-        """Ask which kind of record to work with. Returns None for 'Back'."""
+        """Ask for a tradition or an event (None means the user went back)."""
         self._print("\nWhich type of record?")
         self._print("1. Tradition")
         self._print("2. Event")
@@ -105,12 +101,13 @@ class Menu:
     def _service_for(self, kind):
         return self.traditions if kind == "tradition" else self.events
 
-    # ------------------------------------------------------------------
-    # Welcome screen: first-run setup, log in, or create an account
-    # ------------------------------------------------------------------
+    # welcome screen and login
 
     def _welcome(self):
-        """Return True once someone is logged in, False if the user exits."""
+        """Log in or sign up.
+
+        Returns True once someone is in, or False if they exit.
+        """
         if self.auth.needs_setup():
             self._first_run_setup()
             if self.user is not None:
@@ -171,14 +168,12 @@ class Menu:
         return True
 
     def _enter(self, user):
-        """Remember who is logged in and give both services their role."""
+        """Remember who logged in and give both services their role."""
         self.user = user
         self.traditions.set_role(user["role"], user["username"])
         self.events.set_role(user["role"], user["username"])
 
-    # ------------------------------------------------------------------
-    # Actions
-    # ------------------------------------------------------------------
+    # the actions
 
     def _view_records(self):
         kind = self._pick_record_type()
@@ -211,7 +206,7 @@ class Menu:
         self._print_table(kind, records)
 
     def _add_record(self):
-        # Permission check first: the user is sent away before any question.
+        # check the role first, before asking anything
         if not self._allowed("add"):
             return
         kind = self._pick_record_type()
@@ -229,7 +224,7 @@ class Menu:
         self._print("  Saved! The new {} has ID {}.".format(kind, new_id))
 
     def _update_record(self):
-        # Permission check first: the user is sent away before any question.
+        # check the role first, before asking anything
         if not self._allowed("update"):
             return
         kind = self._pick_record_type()
@@ -269,7 +264,7 @@ class Menu:
         self._print("  Updated {} {}.".format(kind, record["id"]))
 
     def _delete_record(self):
-        # Permission check first: the user is sent away before any question.
+        # check the role first, before asking anything
         if not self._allowed("delete"):
             return
         kind = self._pick_record_type()
@@ -307,12 +302,10 @@ class Menu:
             for name, count in traditions["by_region"]:
                 self._print("  {:<16} {}".format(name, count))
 
-    # ------------------------------------------------------------------
-    # Permission check
-    # ------------------------------------------------------------------
+    # permission check
 
     def _allowed(self, action):
-        """True if the logged-in role may do this, else explain and say no."""
+        """Check the role. If it is not allowed, say so and return False."""
         if can(self.user["role"], action):
             return True
         self._print("\n  Permission denied: your role ({}) cannot {}.".format(
@@ -320,15 +313,13 @@ class Menu:
         self._print("  Ask an organizer to do this for you.")
         return False
 
-    # ------------------------------------------------------------------
-    # Input helpers
-    # ------------------------------------------------------------------
+    # input helpers
 
     def _ask(self, prompt):
         return self._input(prompt).strip()
 
     def _ask_int(self, prompt, low, high):
-        """Keep asking until the user types a whole number from low to high."""
+        """Ask until the user types a whole number from low to high."""
         while True:
             try:
                 value = int(self._ask(prompt))
@@ -343,7 +334,7 @@ class Menu:
                 low, high))
 
     def _ask_field(self, service, field, label, required):
-        """Ask for one field until the service accepts the value."""
+        """Ask for one field until the service accepts it."""
         suffix = "" if required else " (optional, Enter to skip)"
         while True:
             raw = self._ask("{}{}: ".format(label, suffix))
@@ -353,7 +344,7 @@ class Menu:
                 self._print("  " + str(error))
 
     def _ask_existing_record(self, kind, verb):
-        """List the records, ask for an ID, return that record (or None)."""
+        """Show the records, ask for an ID and return that record (or None)."""
         service = self._service_for(kind)
         records = service.list_all()
         if not records:
@@ -370,9 +361,7 @@ class Menu:
             self._print("  " + str(error))
             return None
 
-    # ------------------------------------------------------------------
-    # Output helpers
-    # ------------------------------------------------------------------
+    # output helpers
 
     def _show_status(self):
         self._print("\nLogged in as {} ({})".format(
@@ -413,6 +402,6 @@ class Menu:
 
 
 def _cut(text, width):
-    """Shorten text to fit a table column."""
+    """Cut long text so it fits in a table column."""
     text = str(text)
     return text if len(text) <= width else text[:width - 3] + "..."

@@ -1,7 +1,7 @@
-"""Input validators.
+"""Checks for what the user types.
 
-Each function returns the cleaned value, or raises ValidationError with a
-message that can be shown to the user as it is.
+Each function returns the cleaned value, or raises ValidationError
+with a message we can show to the user.
 """
 from datetime import datetime
 
@@ -9,11 +9,11 @@ MAX_RECORD_ID = 2 ** 63 - 1
 
 
 class ValidationError(ValueError):
-    """The user typed something that is not acceptable."""
+    """The user typed something that is not allowed."""
 
 
 def clean_text(value, label="This field", max_length=100, required=True):
-    """Trim a piece of text and check that it is present and not too long."""
+    """Trim the text and check it is there and not too long."""
     text = "" if value is None else str(value).strip()
     if text == "":
         if required:
@@ -26,7 +26,7 @@ def clean_text(value, label="This field", max_length=100, required=True):
 
 
 def clean_date(value, label="Date"):
-    """Check a YYYY-MM-DD date (a real calendar day) and return it as text."""
+    """Check a YYYY-MM-DD date (it must be a real day) and return it."""
     text = "" if value is None else str(value).strip()
     if text == "":
         raise ValidationError("{} cannot be empty.".format(label))
@@ -36,12 +36,12 @@ def clean_date(value, label="Date"):
         raise ValidationError(
             "{} must be a real date in the format YYYY-MM-DD, "
             "for example 2026-08-07.".format(label))
-    # strptime accepts 2026-8-7; always return the zero-padded form
+    # strptime accepts 2026-8-7, so give back the 2026-08-07 form
     return parsed.strftime("%Y-%m-%d")
 
 
 def clean_record_id(value, label="ID"):
-    """Check a record ID (a whole number from 1 up) and return it as an int."""
+    """Check an ID (a whole number from 1) and return it as an int."""
     if isinstance(value, bool):
         raise ValidationError("{} must be a whole number.".format(label))
     if isinstance(value, int):
@@ -58,9 +58,9 @@ def clean_record_id(value, label="ID"):
 
 
 def clean_choice(value, choices, label="This field"):
-    """Check that value is one of choices, ignoring case.
+    """Check the value is one of the choices (any case).
 
-    Returns the value in lower case.
+    Returns it in lower case.
     """
     text = "" if value is None else str(value).strip().lower()
     if text == "":

@@ -1,4 +1,4 @@
-"""Shared logic of the record services (traditions and events)."""
+"""The code that traditions and events have in common."""
 from database import repository
 from database.connection import session
 from services.errors import NotFoundError, PermissionDenied
@@ -7,11 +7,11 @@ from utils.validators import ValidationError, clean_record_id, clean_text
 
 
 class RecordService:
-    """Create, read, update and delete one kind of record, for one role.
+    """Create, read, update and delete one kind of record.
 
-    Subclasses set KIND and FIELDS and say how each field is validated.
-    A service starts as a volunteer (the most limited role); the menu calls
-    set_role() once the user has logged in.
+    TraditionService and EventService fill in KIND, FIELDS and the
+    checks for each field. A new service starts as a volunteer (the
+    smallest role). The menu calls set_role() after login.
     """
 
     KIND = ""
@@ -24,10 +24,8 @@ class RecordService:
         self.username = ""
         self.set_role(role)
 
-    # ---------- role and permissions ----------
-
     def set_role(self, role, username=""):
-        """Set who is using the service (a role, and optionally a name)."""
+        """Say who is using the service: a role and, if we have it, a name."""
         if role not in ROLE_PERMISSIONS:
             raise ValueError("Unknown role: {!r}".format(role))
         self.role = role
@@ -42,10 +40,8 @@ class RecordService:
                 "Your role ({}) is not allowed to {}.".format(
                     self.role, action))
 
-    # ---------- validation ----------
-
     def validate_field(self, field, value):
-        """Return the cleaned value of one field (subclasses implement)."""
+        """Return the cleaned value of one field."""
         raise NotImplementedError
 
     def _clean_all(self, data):
@@ -56,10 +52,8 @@ class RecordService:
     def _text(value, label, max_length, required=True):
         return clean_text(value, label, max_length, required)
 
-    # ---------- the operations ----------
-
     def create(self, data):
-        """Add a record and return its new id."""
+        """Add a record and return its id."""
         self._require("add")
         cleaned = self._clean_all(data)
         with session(self._conn) as db:
@@ -88,7 +82,7 @@ class RecordService:
             return repository.search_records(db, self.KIND, term)
 
     def update(self, record_id, changes):
-        """Change some fields of a record; fields not in changes are kept."""
+        """Change some fields of a record and keep the others."""
         self._require("update")
         current = self.get(record_id)
         merged = {name: current[name] for name, _, _ in self.FIELDS}

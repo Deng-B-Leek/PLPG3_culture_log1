@@ -1,4 +1,4 @@
-"""Accounts: sign-up, login and password handling."""
+"""Sign up, login and passwords."""
 import hashlib
 import hmac
 import re
@@ -23,15 +23,15 @@ def _hash_password(password, salt_hex):
 class AuthService:
     """Create accounts and check logins.
 
-    The first account ever created is the organizer. Everyone who signs up
-    after that is a volunteer.
+    The first account ever made is the organizer. Everyone who signs
+    up after that is a volunteer.
     """
 
     def __init__(self, conn=None):
         self._conn = conn
 
     def needs_setup(self):
-        """True on the very first run, before any account exists."""
+        """True on the first run, when there are no accounts yet."""
         with session(self._conn) as db:
             return repository.count_users(db) == 0
 
@@ -53,23 +53,23 @@ class AuthService:
         return {"username": username, "role": role}
 
     def create_first_organizer(self, username, password):
-        """Create the first account (an organizer), on a fresh install only."""
+        """Make the first account (an organizer), on a fresh install only."""
         if not self.needs_setup():
             raise PermissionDenied("Setup has already been done.")
         return self._create_user(username, password, "organizer")
 
     def register(self, username, password):
-        """Create a volunteer account."""
+        """Make a volunteer account."""
         return self._create_user(username, password, "volunteer")
 
     def login(self, username, password):
-        """Return the user (username and role) for valid details.
+        """Return the user (username and role) if the details are right.
 
-        Raises AuthError otherwise.
+        Raises AuthError if they are not.
         """
         with session(self._conn) as db:
             row = repository.get_user(db, (username or "").strip())
-        # Hash even for an unknown user, so both failures take the same time.
+        # hash even if the user does not exist, so both failures take as long
         salt = row["salt"] if row else "00" * 16
         candidate = _hash_password(password or "", salt)
         if row is None or not hmac.compare_digest(
